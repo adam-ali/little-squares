@@ -66,6 +66,7 @@ fun AppNav(data: AppData, openHabit: String?, onOpened: () -> Unit) {
                     onAdd = { nav.navigate("edit") },
                     onCalendar = { nav.navigate("calendar") },
                     onSettings = { nav.navigate("settings") },
+                    onMonth = { nav.navigate("calendar?month=true") },
                 )
             }
             composable(
@@ -87,7 +88,10 @@ fun AppNav(data: AppData, openHabit: String?, onOpened: () -> Unit) {
                     onEdit = { nav.navigate("edit?id=${e.arguments?.getString("id")}") },
                 )
             }
-            composable("calendar") { CalendarScreen(data, onBack = { nav.back() }) }
+            composable(
+                "calendar?month={month}",
+                arguments = listOf(navArgument("month") { type = NavType.BoolType; defaultValue = false }),
+            ) { e -> CalendarScreen(data, onBack = { nav.back() }, startOnMonth = e.arguments?.getBoolean("month") == true) }
             composable("settings") {
                 SettingsScreen(data, onBack = { nav.back() }, onArchived = { nav.navigate("archived") })
             }

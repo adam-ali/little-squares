@@ -4,4 +4,10 @@
     <string name="widget_today_desc">Check off today\'s habits. Resize for a list or this week\'s grid.</string>
     <string name="widget_streak_label">Little Squares · Streak</string>
     <string name="widget_streak_desc">One habit, its streak and recent squares.</string>
+    <string name="widget_strip_label">Little Squares · All habits</string>
+    <string name="widget_strip_desc">Every habit\'s check-off in a single row.</string>
+    <string name="widget_week_label">Little Squares · Week</string>
+    <string name="widget_week_desc">This week\'s squares for every habit.</string>
+    <string name="widget_month_label">Little Squares · Month</string>
+    <string name="widget_month_desc">This month at a glance, shaded by how much you did each day.</string>
 </resources>

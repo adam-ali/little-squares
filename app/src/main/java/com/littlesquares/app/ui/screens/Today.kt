@@ -39,6 +39,13 @@ import com.littlesquares.app.data.Repo
 import com.littlesquares.app.data.isDone
 import com.littlesquares.app.data.streak
 import com.littlesquares.app.data.streakText
+import com.littlesquares.app.data.doneBetween
+import com.littlesquares.app.data.weekLetters
+import com.littlesquares.app.data.weekStart
+import com.littlesquares.app.ui.components.DayCell
+import com.littlesquares.app.ui.theme.mix
+import androidx.compose.ui.text.style.TextAlign
+import kotlin.math.roundToInt
 import com.littlesquares.app.ui.components.CheckButton
 import com.littlesquares.app.ui.components.EmojiTile
 import com.littlesquares.app.ui.components.HabitStrip
@@ -58,6 +65,7 @@ fun TodayScreen(
     onAdd: () -> Unit,
     onCalendar: () -> Unit,
     onSettings: () -> Unit,
+    onMonth: () -> Unit = onCalendar,
 ) {
     val ls = LocalLs.current
     val today = rememberToday()
@@ -89,6 +97,9 @@ fun TodayScreen(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 112.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        item(key = "month") {
+                            MonthCard(habits, today, data.settings.weekStartsMonday, onMonth, Modifier.animateItem())
+                        }
                         items(habits, key = { it.id }) { h ->
                             HabitCard(h, today, onOpen = { onOpen(h.id) }, modifier = Modifier.animateItem())
                         }
@@ -213,5 +224,69 @@ private fun EmptyHome(modifier: Modifier) {
             Text("Add a habit you'd like to keep. One is plenty to start.", style = ts(16, 400, ls.ink2, lh = 1.5f))
         }
         Spacer(Modifier.height(0.dp))
+    }
+}
+
+private val MONTH_MIX = listOf(10, 30, 52, 76, 100)
+
+/**
+ * Compact month at a glance: each day shaded by how many habits were done.
+ * No outlines — unchecked days are just a faint tint, future days are blank.
+ */
+@Composable
+private fun MonthCard(habits: List<Habit>, today: Long, mondayFirst: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val ls = LocalLs.current
+    val lav = com.littlesquares.app.data.Pastel.LAVENDER
+    val date = LocalDate.ofEpochDay(today)
+    val month = java.time.YearMonth.from(date)
+    val first = month.atDay(1)
+    val lead = (first.toEpochDay() - first.weekStart(mondayFirst).toEpochDay()).toInt()
+    val rows = (lead + month.lengthOfMonth() + 6) / 7
+    val monthStart = first.toEpochDay()
+    val checks = habits.sumOf { it.doneBetween(monthStart, today) }
+    val pct = if (habits.isEmpty()) 0 else (checks * 100f / (habits.size * (today - monthStart + 1))).roundToInt()
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(ls.surface)
+            .clickable(onClickLabel = "Open calendar", onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(date.format(DateTimeFormatter.ofPattern("MMMM")), style = ts(15, 800, ls.ink), modifier = Modifier.weight(1f))
+            Text("$pct% this month", style = ts(12, 700, ls.ink2))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            weekLetters(mondayFirst).forEach {
+                Text(it, style = ts(10, 800, ls.ink3), textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+            }
+        }
+        for (r in 0 until rows) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (c in 0 until 7) {
+                    val i = r * 7 + c - lead
+                    val m = Modifier.weight(1f).height(22.dp)
+                    if (i !in 0 until month.lengthOfMonth()) { Spacer(m); continue }
+                    val day = monthStart + i
+                    if (day > today) {
+                        Box(m, contentAlignment = Alignment.Center) { Text("${i + 1}", style = ts(10, 700, ls.ink3)) }
+                        continue
+                    }
+                    val lv = (habits.count { it.isDone(day) } * 4f / habits.size).roundToInt()
+                    val isToday = day == today
+                    DayCell(
+                        bg = mix(ls.pastel(lav), ls.surface, MONTH_MIX[lv] / 100f),
+                        modifier = m,
+                        radius = 7.dp,
+                        label = "${i + 1}",
+                        labelSize = 10,
+                        labelWeight = if (isToday) 900 else 700,
+                        labelColor = if (isToday) ls.ink else if (lv >= 3) ls.onPastel else ls.ink2,
+                    )
+                }
+            }
+        }
     }
 }

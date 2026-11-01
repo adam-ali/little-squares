@@ -73,11 +73,11 @@ private const val MONTH = 1
 private val MIX = listOf(10, 30, 52, 76, 100)
 
 @Composable
-fun CalendarScreen(data: AppData, onBack: () -> Unit) {
+fun CalendarScreen(data: AppData, onBack: () -> Unit, startOnMonth: Boolean = false) {
     val ls = LocalLs.current
     val today = rememberToday()
     val mondayFirst = data.settings.weekStartsMonday
-    var mode by rememberSaveable { mutableIntStateOf(WEEK) }
+    var mode by rememberSaveable { mutableIntStateOf(if (startOnMonth) MONTH else WEEK) }
     var weekOff by rememberSaveable { mutableIntStateOf(0) }
     var monthOff by rememberSaveable { mutableIntStateOf(0) }
     val offset = if (mode == WEEK) weekOff else monthOff

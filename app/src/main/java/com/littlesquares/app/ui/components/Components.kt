@@ -132,21 +132,23 @@ fun PillButton(
     enabled: Boolean = true,
     padding: PaddingValues = PaddingValues(horizontal = 24.dp),
 ) {
-    val animBg by animateColorAsState(bg, tween(250), label = "pillBg")
+    val ls = LocalLs.current
+    // Disabled buttons sit back as a quiet surface instead of a faded primary pill.
+    val animBg by animateColorAsState(if (enabled) bg else ls.surface2, tween(250), label = "pillBg")
+    val animFg by animateColorAsState(if (enabled) fg else ls.ink3, tween(250), label = "pillFg")
     Row(
         modifier
             .height(height)
             .clip(RoundedCornerShape(50))
             .background(animBg)
             .clickable(enabled = enabled, onClick = onClick)
-            .alpha(if (enabled) 1f else .4f)
             .padding(padding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
-        if (icon != null) LsIcon(icon, fg, 22.dp)
-        Text(text, style = ts(16, 800, fg))
-        if (trailingIcon != null) LsIcon(trailingIcon, fg, 22.dp)
+        if (icon != null) LsIcon(icon, animFg, 22.dp)
+        Text(text, style = ts(16, 800, animFg))
+        if (trailingIcon != null) LsIcon(trailingIcon, animFg, 22.dp)
     }
 }
 

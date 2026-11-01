@@ -88,7 +88,7 @@ private fun TodayContent(data: AppData) {
                 Spacer(GlanceModifier.height(4.dp))
                 Text("Tap to add your first habit", style = wText(13.sp, pal.ink2, bold = false))
             }
-            size.height >= LARGE.height -> WeekGrid(data, habits, today, pal)
+            size.height >= LARGE.height -> WeekGrid(data, habits, today, pal, size.height)
             habits.size == 1 -> SingleHabit(habits[0], today, pal)
             habits.size <= 3 || size.width >= WIDE.width -> HabitList(habits, today, pal, wide = size.width >= WIDE.width)
             else -> EmojiGrid(habits, today, pal)
@@ -165,53 +165,6 @@ private fun EmojiGrid(habits: List<Habit>, today: Long, pal: WPal) {
                 }
             }
             Spacer(GlanceModifier.height(8.dp))
-        }
-    }
-}
-
-@Composable
-private fun WeekGrid(data: AppData, habits: List<Habit>, today: Long, pal: WPal) {
-    val monday = data.settings.weekStartsMonday
-    val start = LocalDate.ofEpochDay(today).weekStart(monday)
-    val days = (0L until 7L).map { start.plusDays(it).toEpochDay() }
-    val shown = habits.take(6)
-    val cellH = if (shown.size <= 3) 40.dp else 24.dp
-    val n = habits.count { it.isDone(today) }
-    val fmt = DateTimeFormatter.ofPattern("d MMM")
-    Column(GlanceModifier.fillMaxSize()) {
-        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("This week", style = wText(16.sp, pal.ink))
-            Spacer(GlanceModifier.defaultWeight())
-            Text("${start.format(fmt)} – ${start.plusDays(6).format(fmt)}", style = wText(12.sp, pal.ink2, bold = false))
-        }
-        Spacer(GlanceModifier.height(10.dp))
-        DayHeader(days, today, weekLetters(monday), pal)
-        Spacer(GlanceModifier.height(6.dp))
-        shown.forEach { h ->
-            Row(GlanceModifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(h.emoji, style = TextStyle(fontSize = 17.sp), modifier = GlanceModifier.width(38.dp))
-                days.forEach { d ->
-                    val off = today - d
-                    Box(GlanceModifier.defaultWeight().height(cellH).padding(horizontal = 2.dp)) {
-                        when {
-                            off < 0 -> WCell(pal.surface2, null, GlanceModifier.fillMaxSize(), 9.dp)
-                            else -> WCell(
-                                if (h.isDone(d)) pal.pastel(h.color) else pal.tint(h.color),
-                                if (off == 0L) pal.ring(h.color) else null,
-                                GlanceModifier.fillMaxSize(),
-                                9.dp,
-                                if (off in 0..3) toggleAction(h.id, d) else null,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        Spacer(GlanceModifier.defaultWeight())
-        Row(GlanceModifier.fillMaxWidth()) {
-            Text("$n of ${habits.size} done today", style = wText(12.sp, pal.ink2))
-            Spacer(GlanceModifier.defaultWeight())
-            if (habits.size > shown.size) Text("+${habits.size - shown.size} more", style = wText(12.sp, pal.ink2))
         }
     }
 }

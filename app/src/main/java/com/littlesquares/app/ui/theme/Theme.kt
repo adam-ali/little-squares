@@ -1,6 +1,7 @@
 package com.littlesquares.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -63,6 +64,8 @@ fun LittleSquaresTheme(mode: ThemeMode, content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = scheme, typography = NunitoTypography) {
         CompositionLocalProvider(
             LocalLs provides ls,
+            // Text without an explicit colour (e.g. screen titles) must follow the theme.
+            LocalContentColor provides ls.ink,
             LocalTextStyle provides ts(16, color = ls.ink),
         ) { content() }
     }

@@ -66,6 +66,9 @@ class WPal(private val mode: ThemeMode) {
     fun tint(p: Pastel, pct: Int = 26) = cp { it.tint(p, pct) }
     fun ring(p: Pastel) = cp { it.todayRing(p) }
     fun checkIdle(p: Pastel) = cp { it.checkIdle(p) }
+
+    /** Month heatmap shade: lavender mixed into Surface. */
+    fun heat(pct: Int) = cp { com.littlesquares.app.ui.theme.mix(it.pastel(Pastel.LAVENDER), it.surface, pct / 100f) }
 }
 
 val HabitKey = ActionParameters.Key<String>("habit_id")

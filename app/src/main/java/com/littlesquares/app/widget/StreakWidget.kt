@@ -140,22 +140,24 @@ private fun EightWeeks(h: Habit, today: Long, monday: Boolean, pal: WPal) {
             Text("day streak", style = wText(13.sp, pal.ink2))
         }
         Spacer(GlanceModifier.width(12.dp))
+        // Glance rows/columns hold at most 10 children, so gaps are padding, not spacers.
         Row {
             for (w in 0 until 8) {
-                if (w > 0) Spacer(GlanceModifier.width(4.dp))
-                Column {
+                Column(GlanceModifier.padding(start = if (w > 0) 4.dp else 0.dp)) {
                     for (r in 0 until 7) {
-                        if (r > 0) Spacer(GlanceModifier.height(4.dp))
                         val d = start + w * 7 + r
                         val off = today - d
-                        when {
-                            off < 0 -> WCell(pal.surface2, null, GlanceModifier.size(12.dp), 4.dp)
-                            else -> WCell(
-                                if (h.isDone(d)) pal.pastel(h.color) else pal.tint(h.color),
-                                if (off == 0L) pal.ring(h.color) else null,
-                                GlanceModifier.size(12.dp),
-                                4.dp,
-                            )
+                        val m = GlanceModifier.padding(top = if (r > 0) 4.dp else 0.dp)
+                        Box(m) {
+                            when {
+                                off < 0 -> WCell(pal.surface2, null, GlanceModifier.size(12.dp), 4.dp)
+                                else -> WCell(
+                                    if (h.isDone(d)) pal.pastel(h.color) else pal.tint(h.color),
+                                    if (off == 0L) pal.ring(h.color) else null,
+                                    GlanceModifier.size(12.dp),
+                                    4.dp,
+                                )
+                            }
                         }
                     }
                 }
