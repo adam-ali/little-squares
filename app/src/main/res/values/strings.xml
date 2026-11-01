@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Little Squares</string>
+    <string name="widget_today_label">Little Squares · Today</string>
+    <string name="widget_today_desc">Check off today\'s habits. Resize for a list or this week\'s grid.</string>
+    <string name="widget_streak_label">Little Squares · Streak</string>
+    <string name="widget_streak_desc">One habit, its streak and recent squares.</string>
+</resources>
