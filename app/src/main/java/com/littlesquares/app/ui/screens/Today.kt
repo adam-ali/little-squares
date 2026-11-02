@@ -1,7 +1,11 @@
 package com.littlesquares.app.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,156 +26,232 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.littlesquares.app.data.AppData
 import com.littlesquares.app.data.Habit
+import com.littlesquares.app.data.Pastel
 import com.littlesquares.app.data.Repo
 import com.littlesquares.app.data.isDone
 import com.littlesquares.app.data.streak
 import com.littlesquares.app.data.streakText
-import com.littlesquares.app.data.doneBetween
 import com.littlesquares.app.data.weekLetters
 import com.littlesquares.app.data.weekStart
-import com.littlesquares.app.ui.components.DayCell
-import com.littlesquares.app.ui.theme.mix
-import androidx.compose.ui.text.style.TextAlign
-import kotlin.math.roundToInt
 import com.littlesquares.app.ui.components.CheckButton
+import com.littlesquares.app.ui.components.DayCell
 import com.littlesquares.app.ui.components.EmojiTile
 import com.littlesquares.app.ui.components.HabitStrip
-import com.littlesquares.app.ui.components.IconBtn
 import com.littlesquares.app.ui.components.LsIcon
+import com.littlesquares.app.ui.components.PillButton
 import com.littlesquares.app.ui.components.Screen
 import com.littlesquares.app.ui.components.rememberToday
 import com.littlesquares.app.ui.theme.LocalLs
+import com.littlesquares.app.ui.theme.LsColors
+import com.littlesquares.app.ui.theme.mix
 import com.littlesquares.app.ui.theme.ts
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
+
+/** Combined-intensity shades: lavender mixed into Surface, 0–4 levels. */
+val HEAT_MIX = listOf(12, 30, 52, 76, 100)
+
+/** The visible month as slots (null = padding before/after), always whole weeks. */
+fun monthSlots(month: YearMonth, mondayFirst: Boolean): List<Long?> {
+    val first = month.atDay(1)
+    val lead = (first.toEpochDay() - first.weekStart(mondayFirst).toEpochDay()).toInt()
+    val total = ((lead + month.lengthOfMonth() + 6) / 7) * 7
+    return (0 until total).map { i ->
+        val d = i - lead
+        if (d in 0 until month.lengthOfMonth()) first.toEpochDay() + d else null
+    }
+}
 
 @Composable
 fun TodayScreen(
     data: AppData,
     onOpen: (String) -> Unit,
     onAdd: () -> Unit,
-    onCalendar: () -> Unit,
-    onSettings: () -> Unit,
-    onMonth: () -> Unit = onCalendar,
 ) {
     val ls = LocalLs.current
     val today = rememberToday()
     val habits = data.active
+    val n = habits.count { it.isDone(today) }
+    val count = when {
+        habits.isEmpty() -> null
+        n == habits.size -> "All done"
+        else -> "$n of ${habits.size}"
+    }
     val dateText = LocalDate.ofEpochDay(today).format(DateTimeFormatter.ofPattern("EEEE, d MMMM"))
+    val monthView = data.settings.homeMonth
 
-    Screen {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            Column(Modifier.fillMaxSize()) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .padding(start = 24.dp, end = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(dateText, style = ts(14, 700, ls.ink2), modifier = Modifier.weight(1f))
-                    IconBtn(Icons.Rounded.CalendarMonth, onCalendar, tint = ls.ink2, contentDescription = "Calendar")
-                    IconBtn(Icons.Rounded.Settings, onSettings, tint = ls.ink2, contentDescription = "Settings")
+    Screen(tab = true) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    if (count != null) "$dateText · $count" else dateText,
+                    style = ts(14, 700, ls.ink2),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text("Today", style = ts(34, 800, ls.ink, lh = 1.1f, ls = -.6f))
+            }
+            Box(
+                Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(ls.surface2)
+                    .clickable(onClickLabel = "New habit", onClick = onAdd),
+                contentAlignment = Alignment.Center,
+            ) { LsIcon(Icons.Rounded.Add, ls.ink, 26.dp) }
+        }
+
+        if (habits.isEmpty()) {
+            EmptyHome(Modifier.weight(1f), onAdd)
+        } else {
+            LazyColumn(
+                Modifier.weight(1f),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                item(key = "summary") {
+                    SummaryCard(habits, today, data.settings.weekStartsMonday, monthView, Modifier.animateItem())
                 }
-                Text("Today", style = ts(34, 800, ls.ink, lh = 1.1f, ls = -.6f), modifier = Modifier.padding(horizontal = 24.dp))
+                items(habits, key = { it.id }) { h ->
+                    HabitCard(h, today, monthView, data.settings.weekStartsMonday, onOpen = { onOpen(h.id) }, modifier = Modifier.animateItem())
+                }
+            }
+        }
+    }
+}
 
-                if (habits.isEmpty()) {
-                    EmptyHome(Modifier.weight(1f))
-                } else {
-                    ProgressRow(habits, today)
-                    LazyColumn(
-                        Modifier.weight(1f),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 112.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        item(key = "month") {
-                            MonthCard(habits, today, data.settings.weekStartsMonday, onMonth, Modifier.animateItem())
-                        }
-                        items(habits, key = { it.id }) { h ->
-                            HabitCard(h, today, onOpen = { onOpen(h.id) }, modifier = Modifier.animateItem())
+/** One combined day square: shade by how many habits were done, outlined if future, ringed if today. */
+@Composable
+private fun HeatCell(
+    ls: LsColors,
+    habits: List<Habit>,
+    day: Long,
+    today: Long,
+    label: String,
+    height: Dp,
+    labelWeight: Int,
+    modifier: Modifier,
+) {
+    val lav = Pastel.LAVENDER
+    if (day > today) {
+        DayCell(
+            Color.Transparent, modifier.height(height), 10.dp, ring = ls.line, ringWidth = 1.5.dp,
+            label = label, labelColor = ls.ink3, labelSize = 12, labelWeight = labelWeight,
+        )
+        return
+    }
+    val lv = (habits.count { it.isDone(day) } * 4f / habits.size).roundToInt()
+    DayCell(
+        mix(ls.pastel(lav), ls.surface, HEAT_MIX[lv] / 100f),
+        modifier.height(height),
+        10.dp,
+        ring = if (day == today) ls.todayRing(lav) else null,
+        label = label,
+        labelColor = if (lv >= 3) ls.onPastel else ls.ink2,
+        labelSize = 12,
+        labelWeight = labelWeight,
+    )
+}
+
+/** "This week" / month summary with a Week ↔ Month switch that also changes the habit cards. */
+@Composable
+private fun SummaryCard(habits: List<Habit>, today: Long, mondayFirst: Boolean, monthView: Boolean, modifier: Modifier) {
+    val ls = LocalLs.current
+    val date = LocalDate.ofEpochDay(today)
+    val weekDays = (0L until 7L).map { date.weekStart(mondayFirst).plusDays(it).toEpochDay() }
+    val slots = monthSlots(YearMonth.from(date), mondayFirst)
+    val shown = if (monthView) slots.filterNotNull() else weekDays
+    val past = shown.filter { it <= today }
+    val done = habits.sumOf { h -> past.count { h.isDone(it) } }
+    val letters = weekLetters(mondayFirst)
+
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(ls.surface)
+            .clickable(onClickLabel = if (monthView) "Show week" else "Show month") {
+                Repo.updateSettings { it.copy(homeMonth = !it.homeMonth) }
+            }
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(if (monthView) date.format(DateTimeFormatter.ofPattern("MMMM")) else "This week", style = ts(17, 800, ls.ink))
+                Text("$done of ${past.size * habits.size} check-ins", style = ts(13, 600, ls.ink2))
+            }
+            Row(
+                Modifier
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(ls.surface2)
+                    .padding(start = 12.dp, end = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(if (monthView) "Week" else "Month", style = ts(12, 800, ls.ink2))
+                LsIcon(if (monthView) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, ls.ink2, 18.dp)
+            }
+        }
+        AnimatedContent(monthView, transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(150)) }, label = "summary") { month ->
+            if (!month) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    weekDays.forEachIndexed { i, d ->
+                        HeatCell(ls, habits, d, today, letters[i], 28.dp, 800, Modifier.weight(1f))
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        letters.forEach { Text(it, style = ts(11, 800, ls.ink3), textAlign = TextAlign.Center, modifier = Modifier.weight(1f)) }
+                    }
+                    slots.chunked(7).forEach { week ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            week.forEach { d ->
+                                if (d == null) Spacer(Modifier.weight(1f).height(30.dp))
+                                else HeatCell(ls, habits, d, today, "${LocalDate.ofEpochDay(d).dayOfMonth}", 30.dp, 700, Modifier.weight(1f))
+                            }
                         }
                     }
                 }
             }
-            val fabMod = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 16.dp)
-            if (habits.isEmpty()) {
-                Row(
-                    fabMod
-                        .height(60.dp)
-                        .shadow(10.dp, RoundedCornerShape(30.dp))
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(ls.primary)
-                        .clickable(onClick = onAdd)
-                        .padding(start = 18.dp, end = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    LsIcon(Icons.Rounded.Add, ls.onPrimary, 26.dp)
-                    Text("New habit", style = ts(16, 800, ls.onPrimary))
-                }
-            } else {
-                Box(
-                    fabMod
-                        .size(60.dp)
-                        .shadow(10.dp, RoundedCornerShape(20.dp))
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(ls.primary)
-                        .clickable(onClickLabel = "New habit", onClick = onAdd),
-                    contentAlignment = Alignment.Center,
-                ) { LsIcon(Icons.Rounded.Add, ls.onPrimary, 28.dp) }
-            }
         }
     }
 }
 
 @Composable
-private fun ProgressRow(habits: List<Habit>, today: Long) {
-    val ls = LocalLs.current
-    val n = habits.count { it.isDone(today) }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp, top = 14.dp, bottom = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            habits.forEach { h ->
-                val bg by animateColorAsState(
-                    if (h.isDone(today)) ls.pastel(h.color) else ls.line,
-                    tween(300),
-                    label = "seg",
-                )
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(bg),
-                )
-            }
-        }
-        Text(if (n == habits.size) "All done" else "$n of ${habits.size}", style = ts(14, 800, ls.ink2))
-    }
-}
-
-@Composable
-fun HabitCard(h: Habit, today: Long, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+fun HabitCard(
+    h: Habit,
+    today: Long,
+    monthView: Boolean,
+    mondayFirst: Boolean,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val ls = LocalLs.current
     val done = h.isDone(today)
     val cardBg by animateColorAsState(if (done) ls.tint(h.color, 18) else ls.surface, tween(350), label = "card")
@@ -181,28 +261,51 @@ fun HabitCard(h: Habit, today: Long, onOpen: () -> Unit, modifier: Modifier = Mo
             .clip(RoundedCornerShape(28.dp))
             .background(cardBg)
             .clickable(onClick = onOpen)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(start = 14.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            EmojiTile(h.emoji, ls.tint(h.color, if (done) 45 else 32), 46.dp, 16.dp, 23)
+            EmojiTile(h.emoji, ls.tint(h.color, if (done) 45 else 32), 42.dp, 15.dp, 23)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(h.name, style = ts(17, 700, ls.ink), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(streakText(h.streak(today)), style = ts(13, 600, ls.ink2))
             }
-            CheckButton(done, h.color, 52.dp, 28.dp, onClick = { Repo.toggle(h.id, today) })
+            CheckButton(done, h.color, 46.dp, 28.dp, onClick = { Repo.toggle(h.id, today) })
         }
-        HabitStrip(h, today, height = 24.dp, radius = 9.dp)
+        if (!monthView) {
+            HabitStrip(h, today, height = 22.dp, radius = 8.dp)
+        } else {
+            val slots = monthSlots(YearMonth.from(LocalDate.ofEpochDay(today)), mondayFirst)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                slots.chunked(7).forEach { week ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        week.forEach { d ->
+                            val m = Modifier.weight(1f).height(14.dp)
+                            when {
+                                d == null -> Spacer(m)
+                                d > today -> DayCell(Color.Transparent, m, 5.dp, ring = ls.line, ringWidth = 1.5.dp)
+                                else -> DayCell(
+                                    if (h.isDone(d)) ls.pastel(h.color) else ls.tint(h.color),
+                                    m,
+                                    5.dp,
+                                    ring = if (d == today) ls.todayRing(h.color) else null,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun EmptyHome(modifier: Modifier) {
+private fun EmptyHome(modifier: Modifier, onAdd: () -> Unit) {
     val ls = LocalLs.current
     Column(
         modifier
             .fillMaxWidth()
-            .padding(start = 32.dp, end = 32.dp, bottom = 80.dp),
+            .padding(start = 32.dp, end = 32.dp, bottom = 40.dp),
         verticalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterVertically),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -223,70 +326,6 @@ private fun EmptyHome(modifier: Modifier) {
             Text("Nothing here yet", style = ts(24, 800, ls.ink, ls = -.3f))
             Text("Add a habit you'd like to keep. One is plenty to start.", style = ts(16, 400, ls.ink2, lh = 1.5f))
         }
-        Spacer(Modifier.height(0.dp))
-    }
-}
-
-private val MONTH_MIX = listOf(10, 30, 52, 76, 100)
-
-/**
- * Compact month at a glance: each day shaded by how many habits were done.
- * No outlines — unchecked days are just a faint tint, future days are blank.
- */
-@Composable
-private fun MonthCard(habits: List<Habit>, today: Long, mondayFirst: Boolean, onClick: () -> Unit, modifier: Modifier) {
-    val ls = LocalLs.current
-    val lav = com.littlesquares.app.data.Pastel.LAVENDER
-    val date = LocalDate.ofEpochDay(today)
-    val month = java.time.YearMonth.from(date)
-    val first = month.atDay(1)
-    val lead = (first.toEpochDay() - first.weekStart(mondayFirst).toEpochDay()).toInt()
-    val rows = (lead + month.lengthOfMonth() + 6) / 7
-    val monthStart = first.toEpochDay()
-    val checks = habits.sumOf { it.doneBetween(monthStart, today) }
-    val pct = if (habits.isEmpty()) 0 else (checks * 100f / (habits.size * (today - monthStart + 1))).roundToInt()
-    Column(
-        modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(ls.surface)
-            .clickable(onClickLabel = "Open calendar", onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(date.format(DateTimeFormatter.ofPattern("MMMM")), style = ts(15, 800, ls.ink), modifier = Modifier.weight(1f))
-            Text("$pct% this month", style = ts(12, 700, ls.ink2))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            weekLetters(mondayFirst).forEach {
-                Text(it, style = ts(10, 800, ls.ink3), textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-            }
-        }
-        for (r in 0 until rows) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (c in 0 until 7) {
-                    val i = r * 7 + c - lead
-                    val m = Modifier.weight(1f).height(22.dp)
-                    if (i !in 0 until month.lengthOfMonth()) { Spacer(m); continue }
-                    val day = monthStart + i
-                    if (day > today) {
-                        Box(m, contentAlignment = Alignment.Center) { Text("${i + 1}", style = ts(10, 700, ls.ink3)) }
-                        continue
-                    }
-                    val lv = (habits.count { it.isDone(day) } * 4f / habits.size).roundToInt()
-                    val isToday = day == today
-                    DayCell(
-                        bg = mix(ls.pastel(lav), ls.surface, MONTH_MIX[lv] / 100f),
-                        modifier = m,
-                        radius = 7.dp,
-                        label = "${i + 1}",
-                        labelSize = 10,
-                        labelWeight = if (isToday) 900 else 700,
-                        labelColor = if (isToday) ls.ink else if (lv >= 3) ls.onPastel else ls.ink2,
-                    )
-                }
-            }
-        }
+        PillButton("New habit", onClick = onAdd, icon = Icons.Rounded.Add)
     }
 }

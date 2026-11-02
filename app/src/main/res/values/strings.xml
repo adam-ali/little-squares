@@ -10,4 +10,14 @@
     <string name="widget_week_desc">This week\'s squares for every habit.</string>
     <string name="widget_month_label">Little Squares · Month</string>
     <string name="widget_month_desc">This month at a glance, shaded by how much you did each day.</string>
+    <string name="widget_week_strip_label">Little Squares · Week strip</string>
+    <string name="widget_week_strip_desc">This week for all habits in one row. Tap to open the calendar.</string>
+    <string name="widget_today_dots_label">Little Squares · Today</string>
+    <string name="widget_today_dots_desc">A small square per habit: filled when done today.</string>
+    <string name="widget_lock_today_label">Little Squares · Today glance</string>
+    <string name="widget_lock_today_desc">Read-only: each habit\'s square for today.</string>
+    <string name="widget_lock_week_label">Little Squares · Week glance</string>
+    <string name="widget_lock_week_desc">Read-only: this week, all habits combined.</string>
+    <string name="widget_lock_month_label">Little Squares · Month glance</string>
+    <string name="widget_lock_month_desc">Read-only: this month, all habits combined.</string>
 </resources>

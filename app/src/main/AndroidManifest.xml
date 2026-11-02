@@ -109,6 +109,66 @@
                 android:resource="@xml/widget_month" />
         </receiver>
 
+        <receiver
+            android:name=".widget.WeekStripWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_week_strip_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_week_strip" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TodayDotsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_today_dots_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_dots" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.LockTodayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_lock_today_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_lock_today" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.LockWeekWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_lock_week_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_lock_week" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.LockMonthWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_lock_month_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_lock_month" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

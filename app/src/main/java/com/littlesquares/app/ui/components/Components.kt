@@ -27,7 +27,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -61,16 +63,38 @@ import com.littlesquares.app.data.Pastel
 import com.littlesquares.app.ui.theme.LocalLs
 import com.littlesquares.app.ui.theme.ts
 
-/** Full-screen page: app background, insets handled. */
+/**
+ * Full-screen page: app background, insets handled.
+ * Tab pages leave the bottom inset to the navigation bar below them.
+ */
 @Composable
-fun Screen(content: @Composable ColumnScope.() -> Unit) {
+fun Screen(tab: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    val insets = if (tab) {
+        androidx.compose.foundation.layout.WindowInsets.safeDrawing.only(
+            androidx.compose.foundation.layout.WindowInsetsSides.Top + androidx.compose.foundation.layout.WindowInsetsSides.Horizontal,
+        )
+    } else {
+        androidx.compose.foundation.layout.WindowInsets.safeDrawing
+    }
     Column(
         Modifier
             .fillMaxSize()
             .background(LocalLs.current.bg)
-            .safeDrawingPadding(),
+            .windowInsetsPadding(insets),
         content = content,
     )
+}
+
+/** Large page title used on the tab screens (Calendar, Settings). */
+@Composable
+fun TabTitle(text: String) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) { Text(text, style = ts(28, 800, LocalLs.current.ink, ls = -.4f)) }
 }
 
 @Composable

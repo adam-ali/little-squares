@@ -54,6 +54,7 @@ import com.littlesquares.app.ui.components.Screen
 import com.littlesquares.app.ui.components.SectionCard
 import com.littlesquares.app.ui.components.Segmented
 import com.littlesquares.app.ui.components.TimeDialog
+import com.littlesquares.app.ui.components.TabTitle
 import com.littlesquares.app.ui.components.TopBar
 import com.littlesquares.app.ui.components.formatTime
 import com.littlesquares.app.ui.theme.LocalLs
@@ -74,7 +75,7 @@ private fun SectionLabel(text: String, top: Boolean = false) {
 private fun Chevron() = LsIcon(Icons.Rounded.ChevronRight, LocalLs.current.ink3, 22.dp)
 
 @Composable
-fun SettingsScreen(data: AppData, onBack: () -> Unit, onArchived: () -> Unit) {
+fun SettingsScreen(data: AppData, onArchived: () -> Unit) {
     val ls = LocalLs.current
     val ctx = LocalContext.current
     val s = data.settings
@@ -82,8 +83,8 @@ fun SettingsScreen(data: AppData, onBack: () -> Unit, onArchived: () -> Unit) {
     var exporting by remember { mutableStateOf(false) }
     val askNotify = rememberNotificationGate { ok -> Repo.updateSettings { it.copy(eveningNudge = ok) } }
 
-    Screen {
-        TopBar("Settings", Icons.AutoMirrored.Rounded.ArrowBack, onBack)
+    Screen(tab = true) {
+        TabTitle("Settings")
         Column(
             Modifier
                 .weight(1f)

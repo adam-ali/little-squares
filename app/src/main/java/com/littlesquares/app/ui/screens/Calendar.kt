@@ -57,7 +57,7 @@ import com.littlesquares.app.ui.components.IconBtn
 import com.littlesquares.app.ui.components.LsIcon
 import com.littlesquares.app.ui.components.Screen
 import com.littlesquares.app.ui.components.Segmented
-import com.littlesquares.app.ui.components.TopBar
+import com.littlesquares.app.ui.components.TabTitle
 import com.littlesquares.app.ui.components.rememberToday
 import com.littlesquares.app.ui.theme.LocalLs
 import com.littlesquares.app.ui.theme.LsColors
@@ -73,7 +73,7 @@ private const val MONTH = 1
 private val MIX = listOf(10, 30, 52, 76, 100)
 
 @Composable
-fun CalendarScreen(data: AppData, onBack: () -> Unit, startOnMonth: Boolean = false) {
+fun CalendarScreen(data: AppData, startOnMonth: Boolean = false) {
     val ls = LocalLs.current
     val today = rememberToday()
     val mondayFirst = data.settings.weekStartsMonday
@@ -96,8 +96,8 @@ fun CalendarScreen(data: AppData, onBack: () -> Unit, startOnMonth: Boolean = fa
         month.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
     }
 
-    Screen {
-        TopBar("Calendar", Icons.AutoMirrored.Rounded.ArrowBack, onBack)
+    Screen(tab = true) {
+        TabTitle("Calendar")
         Column(
             Modifier
                 .weight(1f)

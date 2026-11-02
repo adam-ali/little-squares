@@ -15,16 +15,27 @@ import androidx.compose.runtime.setValue
 import com.littlesquares.app.data.Repo
 import com.littlesquares.app.reminders.Notifier
 import com.littlesquares.app.ui.AppNav
+import com.littlesquares.app.ui.DeepLink
 import com.littlesquares.app.ui.theme.LittleSquaresTheme
 import com.littlesquares.app.ui.theme.isDark
 
 class MainActivity : ComponentActivity() {
-    private var openHabit by mutableStateOf<String?>(null)
+    companion object {
+        const val EXTRA_TAB = "open_tab"
+    }
+
+    private fun linkOf(i: Intent?): DeepLink? = when {
+        i == null -> null
+        i.getStringExtra(EXTRA_TAB) == "calendar" -> DeepLink.Calendar
+        else -> i.getStringExtra(Notifier.EXTRA_HABIT)?.let { DeepLink.Habit(it) }
+    }
+
+    private var deepLink by mutableStateOf<DeepLink?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Repo.init(this)
-        if (savedInstanceState == null) openHabit = intent?.getStringExtra(Notifier.EXTRA_HABIT)
+        if (savedInstanceState == null) deepLink = linkOf(intent)
         setContent {
             val data by Repo.state.collectAsState()
             val dark = isDark(data.settings.theme)
@@ -35,13 +46,13 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
             LittleSquaresTheme(data.settings.theme) {
-                AppNav(data, openHabit) { openHabit = null }
+                AppNav(data, deepLink) { deepLink = null }
             }
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent.getStringExtra(Notifier.EXTRA_HABIT)?.let { openHabit = it }
+        linkOf(intent)?.let { deepLink = it }
     }
 }

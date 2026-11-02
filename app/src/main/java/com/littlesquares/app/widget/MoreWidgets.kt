@@ -197,7 +197,7 @@ class WeekWidget : GlanceAppWidget() {
 
 // ---------- Month ----------
 
-private val HEAT = listOf(10, 30, 52, 76, 100)
+val HEAT = listOf(12, 30, 52, 76, 100)
 
 class MonthWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = MonthWidget()

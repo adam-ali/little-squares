@@ -33,6 +33,8 @@ data class Settings(
     val gentleSound: Boolean = true,
     val eveningNudge: Boolean = false,
     val onboarded: Boolean = false,
+    /** Home shows the month instead of the week. */
+    val homeMonth: Boolean = false,
     /** Streak widget id -> habit id. */
     val widgetHabits: Map<Int, String> = emptyMap(),
 )
