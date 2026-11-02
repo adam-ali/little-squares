@@ -38,8 +38,18 @@ jobs:
         if: env.KEYSTORE_B64 != ''
         run: |
           # Pasted secrets often pick up spaces or line breaks; drop them before decoding.
-          printf '%s' "$KEYSTORE_B64" | tr -d ' \t\r\n' | base64 -d > "$RUNNER_TEMP/release.jks"
-          echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          clean=$(printf '%s' "$KEYSTORE_B64" | tr -d ' \t\r\n')
+          if printf '%s' "$clean" | base64 -d > "$RUNNER_TEMP/release.jks" 2>/dev/null && [ -s "$RUNNER_TEMP/release.jks" ]; then
+            echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "Signing key decoded ($(stat -c%s "$RUNNER_TEMP/release.jks") bytes)."
+          else
+            bad=$(printf '%s' "$clean" | tr -d 'A-Za-z0-9+/=' | wc -c)
+            msg="SIGNING_KEYSTORE_BASE64 is not valid base64 (${#clean} characters, $bad of them not base64). Re-copy it with: base64 -i release.p12 | pbcopy"
+            if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+              echo "::error::$msg"; exit 1
+            fi
+            echo "::warning::$msg Branch build continues with the debug key."
+          fi
 
       - name: Build release APK
         run: ./gradlew assembleRelease --stacktrace
