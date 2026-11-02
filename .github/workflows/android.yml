@@ -37,14 +37,15 @@ jobs:
       - name: Use private signing key
         if: env.KEYSTORE_B64 != ''
         run: |
-          # Pasted secrets often pick up spaces or line breaks; drop them before decoding.
-          clean=$(printf '%s' "$KEYSTORE_B64" | tr -d ' \t\r\n')
+          # Pasted secrets often pick up spaces, line breaks or the trailing "%" macOS
+          # Terminal shows after output; keep only base64 characters. A wrong key still
+          # fails loudly when Gradle checks the keystore password.
+          clean=$(printf '%s' "$KEYSTORE_B64" | tr -cd 'A-Za-z0-9+/=')
           if printf '%s' "$clean" | base64 -d > "$RUNNER_TEMP/release.jks" 2>/dev/null && [ -s "$RUNNER_TEMP/release.jks" ]; then
             echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
             echo "Signing key decoded ($(stat -c%s "$RUNNER_TEMP/release.jks") bytes)."
           else
-            bad=$(printf '%s' "$clean" | tr -d 'A-Za-z0-9+/=' | wc -c)
-            msg="SIGNING_KEYSTORE_BASE64 is not valid base64 (${#clean} characters, $bad of them not base64). Re-copy it with: base64 -i release.p12 | pbcopy"
+            msg="SIGNING_KEYSTORE_BASE64 is not valid base64 (${#clean} usable characters). Re-copy it with: base64 -i release.p12 | pbcopy"
             if [ "$GITHUB_REF" = "refs/heads/main" ]; then
               echo "::error::$msg"; exit 1
             fi
